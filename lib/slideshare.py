@@ -13,7 +13,9 @@ from .utils import save_metadata
 
 def dl_slideshare(url: str, dst: Path = Path.cwd() / 'slides'):
     assert r"www.slideshare.net" in url
-    pdf_path = dst / f'{url.split("/")[-1]}.pdf'
+    soup = get_soup(url)
+    title = get_title(soup)
+    pdf_path = dst / f'{url.split("/")[-1]}-{title}.pdf'
     
     if pdf_path.exists():
         raise ValueError(f"{pdf_path} Already exists")
@@ -21,16 +23,24 @@ def dl_slideshare(url: str, dst: Path = Path.cwd() / 'slides'):
     freeze_support()  # For windows multithreadings
     with TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
-        download_images(url, tmpdir)
+        download_images(soup, tmpdir)
         convert_to_pdf(tmpdir, pdf_path)
 
-    save_metadata(pdf_path, url, None)
+    save_metadata(pdf_path, url, title, None)
 
-def download_images(url: str, dest: Path = Path.cwd() / 'slides/tmp'):
+def get_soup(url: str) -> BeautifulSoup:
+    with urlopen(url) as res:
+        text = res.read().decode(res.headers.get_content_charset())
+    return BeautifulSoup(text, "html.parser")
+    
+def get_title(soup: BeautifulSoup) -> str:
+    return soup.title.string
+
+def download_images(soup: BeautifulSoup, dest: Path = Path.cwd() / 'slides/tmp'):
     if not dest.is_dir():
         dest.mkdir(parents=True)
 
-    images = scrape_image_urls(url)
+    images = scrape_image_urls(soup)
 
     n_imgs = len(images)
     logger.info(f"{n_imgs} slides found")
@@ -59,10 +69,7 @@ def download_slide(idx: int, image_url: str, image_path: Path):
         with urlopen(image_url) as res:
             image.write(res.read())
 
-def scrape_image_urls(url: str):
-    with urlopen(url) as res:
-        text = res.read().decode(res.headers.get_content_charset())
-    soup = BeautifulSoup(text, "html.parser")
+def scrape_image_urls(soup: BeautifulSoup):
     images = soup.find_all("img", class_="slide-image")
 
     if not images:

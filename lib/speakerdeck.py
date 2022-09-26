@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 from urllib.parse import unquote
 from urllib.request import urlopen
 from bs4 import BeautifulSoup, Tag
@@ -10,9 +11,11 @@ from .utils import save_metadata
 
 def dl_speakerdeck(url: str, dst: Path = Path.cwd() / 'slides'):
     assert r"speakerdeck.com" in url
-    pdf_url = scrape_pdf_url(url)
+    soup = get_soup(url)
+    pdf_url = scrape_pdf_url(soup)
+    title = get_title(soup)
 
-    pdf_path = dst / unquote(pdf_url.split('/')[-1])
+    pdf_path = dst / f"{unquote(pdf_url.split('/')[-1]).replace('.pdf','')}-{title}.pdf"
     if pdf_path.exists():
         raise ValueError(f"{pdf_path} Already exists")
         
@@ -23,15 +26,32 @@ def dl_speakerdeck(url: str, dst: Path = Path.cwd() / 'slides'):
 
     logger.info(f"PDF saved at {dst} ({url=})")
         
-    save_metadata(pdf_path, url, pdf_url)
+    save_metadata(pdf_path, url, title, pdf_url)
+    
 
-def scrape_pdf_url(url: str) -> str:
+def get_soup(url: str) -> BeautifulSoup:
     with urlopen(url) as res:
         text = res.read().decode(res.headers.get_content_charset())
-    soup = BeautifulSoup(text, "html.parser")
+    return BeautifulSoup(text, "html.parser")
+    
+    
+def get_title(soup: BeautifulSoup):
+    title_tag = soup.find("meta", property="og:title")
+    title = title_tag["content"] if title_tag else "No_title"
+
+    for tag in soup.find_all("meta"):
+        if tag.get("property", None) == "og:title":
+            title: str = tag.get("content", None)
+            return title.replace('/', '_')
+    else:
+        raise ValueError('No title meta-tag found')
+
+        
+
+def scrape_pdf_url(soup: BeautifulSoup) -> str:
     pdf_tag = soup.find(title='Download PDF')
     if not isinstance(pdf_tag, Tag):
-        raise ValueError(f'No pdf link found on {url}')
+        raise ValueError(f'No pdf link found')
 
     pdf_url = pdf_tag.get('href')
     if not isinstance(pdf_url, str):

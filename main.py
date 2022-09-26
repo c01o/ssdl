@@ -9,6 +9,7 @@ logger = getLogger(__name__)
 
 from lib.slideshare import dl_slideshare
 from lib.speakerdeck import dl_speakerdeck
+from lib.arxiv import dl_arxiv
 
 
 def main(url: str, to: Optional[str] = None):
@@ -37,6 +38,8 @@ def main(url: str, to: Optional[str] = None):
             dl_slideshare(url, dst)
         case 'speakerdeck.com':
             dl_speakerdeck(url, dst)
+        case 'arxiv.org':
+            dl_arxiv(url, dst)
             
 if __name__ == '__main__':
     fire.Fire(main)
