@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import fire
 from urllib.parse import urlparse
 from pathlib import Path
