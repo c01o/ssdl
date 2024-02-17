@@ -1,6 +1,5 @@
 from multiprocessing.sharedctypes import Value
 from urllib.parse import unquote
-from urllib.request import urlopen
 from bs4 import BeautifulSoup, Tag
 from pathlib import Path
 
@@ -8,6 +7,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 from .utils import save_metadata
+from .utils import urlopen_with_ua as urlopen
 
 def dl_speakerdeck(url: str, dst: Path = Path.cwd() / 'slides'):
     assert r"speakerdeck.com" in url
