@@ -7,7 +7,7 @@
     ssdl = with nixpkgs.legacyPackages.x86_64-linux;
      stdenv.mkDerivation {
       pname = "ssdl";
-      version = "0.1.0";
+      version = "0.1.1";
 
       src = self; 
       buildInputs = with python3Packages; [
